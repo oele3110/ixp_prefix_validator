@@ -1,6 +1,7 @@
 import httplib
 import MySQLdb as mdb
 import time
+import ipaddr
 
 
 host = "tanger.imp.fu-berlin.de"
@@ -16,6 +17,47 @@ dbTable2 = "`rs_rpki_validation`"
 patternNotFound = '-1\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)'
 patternInvalid = '0\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)\|(.+)'
 patternValid = '1\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)\|(.+)'
+
+
+# this method transforms the ip-prefix into binary
+def toBin(ip, length):
+	prefix = prefix = "%032d" % (int(bin(ipaddr.IPv4Network(ip).network)[2:]))
+	return prefix[:int(length)]
+
+# this method checks why a route is invalid
+def checkValidity(vrpArray, routeAsn, routeBin):
+	validity = ""
+	for vrpData in vrpArray:
+		vrpAsn = vrpData[0]
+		vrpMaxLen = vrpData[1]
+		vrpBin = vrpData[2]
+		
+		#Check if length is too great (prefix too specific)
+		if (int(vrpAsn) == int(routeAsn)) and (len(routeBin) > int(vrpMaxLen)):
+			if (len(vrpBin) == int(vrpMaxLen)):
+				validity = "IP"
+			else:
+				validity = "IQ"
+		#Check if AS number mismatches but prefix falls within valid range
+		elif (int(vrpAsn) != int(routeAsn)) and (len(routeBin) >= len(vrpBin)) and (len(routeBin) <= int(vrpMaxLen)):
+			validity = "IA"
+		#Check if both AS does not match and prefix is too specific
+		elif (int(vrpAsn) != int(routeAsn)) and (len(routeBin) > int(vrpMaxLen)):
+			validity = "IB"
+			
+		##############################
+		#Validity states:            #
+		##############################
+		#                            #
+		# IP = Fixed length exceeded #
+		# IQ = Length range exceeded #
+		# IA = AS does not match     #
+		# IB = Prefix too specific   #
+		#      AND AS does not match #
+		#  V = Valid                 #
+		#  U = Unknown               #
+		##############################
+	return validity
 
 
 def getData(conn, data):
@@ -84,8 +126,12 @@ def insertSql(data):
 		
 		splitted = string.split("|")
 
+		validityInfo = ""
+
 		id = splitted[0]
 		validity = splitted[1]
+
+		values = splitted[2].split(" ")
 
 
 		valValue = ""
@@ -93,13 +139,34 @@ def insertSql(data):
 		if validity == '-1':
 			valValue = "U"
 		elif validity == '0':
+			#print string
 			valValue = "IV"
+			parts = splitted[3].split(',')
+			vrpArray = [[] for i in range(len(parts))]
+			counter = 0
+
+			for part in parts:
+
+				subPart = part.split(" ")
+
+				vrpArray[counter] = (subPart[0], subPart[3], toBin(subPart[1], subPart[2]))
+				counter += 1
+
+			validityInfo = checkValidity(vrpArray, values[2], toBin(values[0], values[1]))
+
+			#sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
+		
+			#cursor.execute(sql)
+
+
 		elif validity == '1':
 			valValue = "V"
 
-		sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '');"
+		sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
 		
 		cursor.execute(sql)
+
+		#print sql
 
 	connection.commit()
 	connection.close()
@@ -107,7 +174,7 @@ def insertSql(data):
 def main():
 
 
-	#data = ["189.84.163.0,24,28171", "103.10.232.0,24,1280"]
+	#data = ["189.84.163.0,24,28171,9", "103.10.232.0,24,1285,10", "103.10.232.0,24,1280,12"]
 
 	m1 = int(round(time.time() * 1000))
 	data = readSql()
