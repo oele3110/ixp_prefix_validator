@@ -13,11 +13,7 @@ dbPw = 'skims12345'
 dbName = 'ixp'
 dbTable = "`rs_prefixes`"
 dbTable2 = "`rs_rpki_validation`"
-
-patternNotFound = '-1\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)'
-patternInvalid = '0\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)\|(.+)'
-patternValid = '1\|(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)\|(.+)'
-
+dbTable3 = "`rs_rpki_roa`"
 
 # this method transforms the ip-prefix into binary
 def toBin(ip, length):
@@ -133,6 +129,7 @@ def insertSql(data):
 
 		values = splitted[2].split(" ")
 
+		roaSql = []
 
 		valValue = ""
 
@@ -142,6 +139,7 @@ def insertSql(data):
 			#print string
 			valValue = "IV"
 			parts = splitted[3].split(',')
+
 			vrpArray = [[] for i in range(len(parts))]
 			counter = 0
 
@@ -152,6 +150,11 @@ def insertSql(data):
 				vrpArray[counter] = (subPart[0], subPart[3], toBin(subPart[1], subPart[2]))
 				counter += 1
 
+				sql = "INSERT INTO " + dbTable3 + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2]+");"
+				#print sql
+				
+				roaSql.append(sql)
+
 			validityInfo = checkValidity(vrpArray, values[2], toBin(values[0], values[1]))
 
 			#sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
@@ -161,12 +164,31 @@ def insertSql(data):
 
 		elif validity == '1':
 			valValue = "V"
+			parts = splitted[3].split(',')
+
+			for part in parts:
+
+				subPart = part.split(" ")
+
+				sql = "INSERT INTO " + dbTable3 + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2].rstrip()+");"
+				#print sql
+
+				roaSql.append(sql)
+
 
 		sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
 		
+		#print sql
+
 		cursor.execute(sql)
 
-		#print sql
+		for sql in roaSql:
+			#print "roa: " + sql
+			cursor.execute(sql)
+
+
+		# reset array after inserting
+		roaSql = []
 
 	connection.commit()
 	connection.close()
