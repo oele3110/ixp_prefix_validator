@@ -4,6 +4,6 @@ CREATE TABLE IF NOT EXISTS `rs_rpki_roa` (
   `prefix` varchar(16),
   `max` int(11),
   `min` int(11),
-  PRIMARY KEY (`rs_prefix_id`,`asn`,`prefix`),
+  PRIMARY KEY (`rs_prefix_id`,`asn`,`prefix`,`max`,`min`),
   FOREIGN KEY (`rs_prefix_id`) REFERENCES `rs_prefixes` (`id`)
 )
