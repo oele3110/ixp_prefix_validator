@@ -13,7 +13,7 @@ dbPw = 'skims12345'
 dbName = 'ixp'
 dbTable = "`rs_prefixes`"
 dbTable2 = "`rs_rpki_validation`"
-dbTable3 = "`rs_rpki_roa`"
+dbTable3 = "`rpki_roa`"
 
 # this method transforms the ip-prefix into binary
 def toBin(ip, length):
