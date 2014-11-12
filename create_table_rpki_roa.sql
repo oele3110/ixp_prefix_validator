@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `rs_rpki_roa` (
+CREATE TABLE IF NOT EXISTS `rpki_roa` (
   `rs_prefix_id` int(11) NOT NULL,
   `asn` int(11),
   `prefix` varchar(16),
