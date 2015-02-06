@@ -46,6 +46,7 @@ def insert(users,table,filename):
 	for line in file:
 		counter +=1
 		# import only every 100th entry (for testing purposes)
+		# remove if condition if all entries shall be used
 		if counter%100 == 0:
 			parts = re.match(pattern,line)
 			ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
