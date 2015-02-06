@@ -41,18 +41,23 @@ def insert(users,table,filename):
 
 	pattern = "AS(\d{1,5})\|(.*)\|AS(\d{1,5})"
 	file = open(filename,"r")
+
+	# DEBUG
 	counter = 0
 
 	for line in file:
+		# DEBUG
 		counter +=1
 		# import only every 100th entry (for testing purposes)
 		# remove if condition if all entries shall be used
-		if counter%100 == 0:
-			parts = re.match(pattern,line)
-			ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-			query = "INSERT INTO " + table + " (`custid`, `timestamp`, `prefix`, `protocol`, `irrdb`, `rs_origin`) VALUES ("+str(users[(int)(parts.group(1))])+",CURRENT_TIMESTAMP,'"+str(parts.group(2))+"',4,0,"+str(parts.group(3))+")"
-			#print query
-			cursor.execute(query)
+		# DEBUG START
+		#if counter%100 == 0:
+		parts = re.match(pattern,line)
+		ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+		query = "INSERT INTO " + table + " (`custid`, `timestamp`, `prefix`, `protocol`, `irrdb`, `rs_origin`) VALUES ("+str(users[(int)(parts.group(1))])+",CURRENT_TIMESTAMP,'"+str(parts.group(2))+"',4,0,"+str(parts.group(3))+")"
+		cursor.execute(query)
+		# DEBUG END
+
 		pass
 		
 	connection.commit()
