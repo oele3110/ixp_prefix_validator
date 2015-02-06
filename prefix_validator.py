@@ -2,18 +2,30 @@ import httplib
 import MySQLdb as mdb
 import time
 import ipaddr
+import re
 
 
-host = "tanger.imp.fu-berlin.de"
-port = 5003
+host = None
+port = None
 
-dbHost = 'localhost'
-dbUser = 'root'
-dbPw = 'skims12345'
-dbName = 'ixp'
-dbTable = "`rs_prefixes`"
-dbTable2 = "`rs_rpki_validation`"
-dbTable3 = "`rpki_roa`"
+dbHost = None
+dbUser = None
+dbPw = None
+dbName = None
+prefixesTable = None
+rpkiTable = None
+roaTable = None
+
+
+def readIni(settingsFile):
+	ini = open(settingsFile)
+	settings = {}
+	for line in ini:
+		parts = re.match("(.*)=(.*)",line)
+		if parts != None:
+			settings[parts.group(1).strip()] = parts.group(2).strip()
+
+	return settings
 
 # this method transforms the ip-prefix into binary
 def toBin(ip, length):
@@ -88,7 +100,7 @@ def readSql():
 	data = []
 	connection=mdb.connect(dbHost, dbUser, dbPw, dbName)
 	cursor=connection.cursor()
-	sql = "SELECT * FROM "+dbTable#+" LIMIT 10"
+	sql = "SELECT * FROM "+prefixesTable#+" LIMIT 10"
 
 	cursor.execute(sql)
 	results = cursor.fetchall()
@@ -150,14 +162,14 @@ def insertSql(data):
 				vrpArray[counter] = (subPart[0], subPart[3], toBin(subPart[1], subPart[2]))
 				counter += 1
 
-				sql = "INSERT INTO " + dbTable3 + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2]+");"
+				sql = "INSERT INTO " + roaTable + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2]+");"
 				#print sql
 				
 				roaSql.append(sql)
 
 			validityInfo = checkValidity(vrpArray, values[2], toBin(values[0], values[1]))
 
-			#sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
+			#sql = "INSERT INTO " + rpkiTable + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
 		
 			#cursor.execute(sql)
 
@@ -170,13 +182,13 @@ def insertSql(data):
 
 				subPart = part.split(" ")
 
-				sql = "INSERT INTO " + dbTable3 + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2].rstrip()+");"
+				sql = "INSERT INTO " + roaTable + "(`rs_prefix_id`, `asn`, `prefix`, `max`, `min`) VALUES ("+id+", "+subPart[0]+", '"+subPart[1]+"', "+subPart[3].rstrip()+", "+subPart[2].rstrip()+");"
 				#print sql
 
 				roaSql.append(sql)
 
 
-		sql = "INSERT INTO " + dbTable2 + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
+		sql = "INSERT INTO " + rpkiTable + " (`rs_prefix_id`, `validity`, `info`) VALUES ("+id+", '"+valValue+"', '"+validityInfo+"');"
 		
 		#print sql
 
@@ -225,5 +237,22 @@ def main():
 	
 	
 	print "sql insertion: " + str(m6-m5) + " ms"
+
+
+
+
+settings = readIni("settings.ini")
+
+host = settings['httpHost']
+port = settings['httpPort']
+
+dbHost = settings['dbHost']
+dbUser = settings['dbUser']
+dbPw = settings['dbPw']
+dbName = settings['dbName']
+prefixesTable = settings['prefixesTable']
+rpkiTable = settings['rpkiTable']
+roaTable = settings['roaTable']
+
 
 main()
