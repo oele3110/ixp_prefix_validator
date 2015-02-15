@@ -4,9 +4,13 @@ This is an RPKI extension for IXP Manager
 
 ### 1
 
-First install IXP Manager
+Install IXP Manager (Branch: Production)
 
-https://github.com/inex/IXP-Manager
+https://github.com/oele3110/IXP-Manager/tree/production
+
+Install and run RTR HTTP Server
+
+https://github.com/oele3110/RtrHttpServer
 
 ### 2
 
